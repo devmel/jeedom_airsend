@@ -15,9 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
-require_once dirname(__FILE__) . "/../class/airsend.class.php";
+require_once dirname(__FILE__) . "/../../../../core/php/core.inc.php";
 
-if (!jeedom::apiAccess(init('apikey'), 'airsend')) {
+if (!jeedom::apiAccess(init('apikey'), airsend::getPluginId())) {
+	log::add(airsend::getPluginId(), 'error', __('Clé API non valide, vous n\'etes pas autorisé à effectuer cette action', __FILE__));
 	echo __('Clé API non valide, vous n\'etes pas autorisé à effectuer cette action', __FILE__);
 	die();
 }
@@ -55,24 +56,34 @@ if (is_array($data) && isset($data['events'])) {
 			}else{
 				if($val['type'] == 3){			//Event type GOT (sensor)
 					$found = false;
+					$isreliable = true;
+					if(array_key_exists('reliability', $val)){
+						$isreliable = false;
+						if($val['reliability'] > 0x6 && $val['reliability'] < 0x47){
+							$isreliable = true;
+						}
+					}
 					//Search eqLogic and update
 					$plugin = plugin::byId('airsend');
 					$eqLogics = eqLogic::byType($plugin->getId());
 					foreach ($eqLogics as $eqLogic) {
-						if($eqLogic->isChannel($channel)){
-							if($eqLogic->getIsEnable()){
+						if($eqLogic->isChannelCompatible($channel) && $eqLogic->isThingNotesCompatible($val['thingnotes']['notes'])){
+							$found = true;
+							if($eqLogic->getIsEnable() && $isreliable == true){
 								if($eqLogic->updateStateWithNotes($val['thingnotes']['notes'], $collectdate)){
 									$forwardstate = $eqLogic->getConfiguration('forwardstate', null);
 									$forwardstatevalue = $eqLogic->getConfiguration('forwardstatevalue', null);
-									$found = true;
 								}
 							}
 						}
 					}
-					if($found == false){
+					if($found == false && $isreliable == true){
 						$device = airsend::getBaseDevice($data['localip']);
 						if($device && $device->getConfiguration('autoinclude', null)){
-							airsend::createFromEvent($val, $device);
+							$eqLogic = airsend::createFromEvent($val, $device);
+							if(isset($eqLogic)){
+								$eqLogic->updateStateWithNotes($val['thingnotes']['notes'], $collectdate);
+							}
 						}
 					}
 				}

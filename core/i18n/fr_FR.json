@@ -95,5 +95,11 @@
         "Valeur de l'état à propager": "Valeur de l'état à propager",
         "Basculer": "Basculer",
         "Nom": "Nom"
-   }
+   },
+   "plugins\/airsend\/plugin_info\/configuration.php": {
+    "401 - Accès non autorisé": "401 - Accès non autorisé",
+    "Général": "Général",
+    "Port du service d'arrière plan": "Port du service d'arrière plan",
+    "Ne pas vérifier la signature du service d'arrière plan": "Ne pas vérifier la signature du service d'arrière plan"
+  }
 }

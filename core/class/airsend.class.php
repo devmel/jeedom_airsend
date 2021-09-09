@@ -40,6 +40,10 @@ class airsend extends eqLogic {
         self::deamon_stop();
 		log::remove(__CLASS__ . '_update');
         $deamon_root = self::getScriptPath();
+		try{
+			$request_shell = new com_shell('sudo chmod 777 ' . $deamon_root . ' 2>&1');
+			$request_shell->exec();	//Permission fix prevent
+		} catch (Exception $e) {}
         chdir($deamon_root);
         return array('script' => $deamon_root . 'dependancy_install.sh #stype#', 'log' => log::getPathToLog(__CLASS__ . '_update'));
 	}
@@ -49,14 +53,18 @@ class airsend extends eqLogic {
         $signed = 0;
         $deamon_file = self::getDeamon();
         if($deamon_file){
-            $disable_sign = config::byKey('disable_sign', 'airsend', 0);
+            $disable_sign = config::byKey('disable_sign', self::getPluginId(), 0);
             if($disable_sign > 0){
                 $signed = 2;
             }else{
                 $deamon_root = self::getDeamonPath();
                 if(@chdir($deamon_root)){
                     try{
-                        $request_shell = new com_shell('export GNUPGHOME="'.self::getTmpPath().'"; gpg --no-options --no-default-keyring --keyring '.self::getPublicSignKey().' --verify '.$deamon_file.'.sig');
+                        $request_shell = new com_shell('sudo chmod 666 ' . self::getTmpPath() . 'trustdb.gpg 2>&1');
+						$request_shell->exec();	//Permission fix prevent
+                    } catch (Exception $e) {}
+                    try{
+                        $request_shell = new com_shell('LC_MESSAGES=C GNUPGHOME="'.self::getTmpPath().'" gpg --no-secmem-warning --no-tty --no-default-keyring --no-options --no-permission-warning --keyring '.self::getPublicSignKey().' --verify '.$deamon_file.'.sig');
                         $result = $request_shell->exec();
                         if(strpos($result, "Good signature from \"Devmel Apps <apps@devmel.com>\"") !== false){
                             $signed = 1;
@@ -73,7 +81,7 @@ class airsend extends eqLogic {
     }
 
     public static function deamon_info() {
-        $port_server = config::byKey('port_server', 'airsend', 33863)&0xffff;
+        $port_server = config::byKey('port_server', self::getPluginId(), 33863)&0xffff;
 		$return = array();
 		$return['state'] = 'nok';
         $return['launchable'] = 'nok';
@@ -96,7 +104,7 @@ class airsend extends eqLogic {
         if ($deamon_info['launchable'] != 'ok' || $deamon_info['state'] == 'ok') {
             return;
         }
-        $port_server = config::byKey('port_server', 'airsend', 33863);
+        $port_server = config::byKey('port_server', self::getPluginId(), 33863);
         $signed = self::deamon_is_signed();
         if($signed == 1 || $signed == 2){
             $launchpath = self::getTmpPath();
@@ -157,19 +165,27 @@ class airsend extends eqLogic {
         return null;
     }
     public static function getDeamonPath(){
-        return dirname(__FILE__) . '/../../ressources/scripts/bin/unix/';
+        return self::getPluginPath() . 'ressources/scripts/bin/unix/';
     }
     public static function getScriptPath(){
-        return dirname(__FILE__) . '/../../ressources/scripts/';
-    }
-    public static function getTmpPath(){
-        return '/tmp';
+        return self::getPluginPath() . 'ressources/scripts/';
     }
     public static function getPublicSignKey(){
-        return dirname(__FILE__) . '/../../ressources/Devmel_Apps.gpg';
+        return self::getPluginPath() . 'ressources/Devmel_Apps.gpg';
     }
     public static function getChannelsInformationFile(){
-        return dirname(__FILE__) . '/../../ressources/channels.json';
+        return self::getPluginPath() . 'ressources/channels.json';
+    }
+    public static function getTmpPath(){
+        return '/tmp/'; //jeedom::getTmpFolder(self::getPluginId())
+    }
+    public static function getPluginPath(){
+		$adir = dirname(__FILE__) . '/../..';
+		$rp = realpath($adir);
+		if($rp !== false){
+			$adir = $rp;
+		}
+        return $adir.'/';
     }
     public static function getArch(){
         $ret = array();
@@ -191,6 +207,16 @@ class airsend extends eqLogic {
         }
         return $ret;
     }
+    public static function getCallbackUrl(){
+        $base = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp');
+        if(empty($base) || stripos($base, 'https://') === 0){
+            $base = "http://127.0.0.1";
+        }
+		return $base . '/plugins/'. self::getPluginId() .'/core/php/jeeAirSend.php?apikey='.jeedom::getApiKey(self::getPluginId());
+    }
+    public static function getPluginId(){
+		return 'airsend';
+    }
 
     public static function getChannelsInformation(){
         $file = self::getChannelsInformationFile();
@@ -202,7 +228,7 @@ class airsend extends eqLogic {
     }
 
     public static function request($url, $data = null, $method = 'GET', $token = null) { 
-        $port_server = config::byKey('port_server', 'airsend', 33863);
+        $port_server = config::byKey('port_server', self::getPluginId(), 33863);
         $full_url = 'http://127.0.0.1:' . $port_server . '/' . $url;
         $result = false;
         if ((extension_loaded('curl') === true) && (is_resource($curl = curl_init()) === true)){
@@ -242,7 +268,7 @@ class airsend extends eqLogic {
     } 
 
 	public static function devices_start(){
-		$eqLogics = eqLogic::byType('airsend');
+		$eqLogics = eqLogic::byType(self::getPluginId());
 		foreach ($eqLogics as $eqLogic)
 		{
             if ($eqLogic->getIsEnable() == 0) continue;
@@ -281,7 +307,7 @@ class airsend extends eqLogic {
     }
 
 	public static function refreshInfo(){
-		$eqLogics = eqLogic::byType('airsend');
+		$eqLogics = eqLogic::byType(self::getPluginId());
 		foreach ($eqLogics as $eqLogic)
 		{
             if ($eqLogic->getIsEnable() == 0) continue;
@@ -295,7 +321,7 @@ class airsend extends eqLogic {
     }
 
     public static function getDeviceName($name){
-        $plugin = plugin::byId('airsend');
+        $plugin = plugin::byId(self::getPluginId());
         $eqLogics = eqLogic::byType($plugin->getId());
         foreach ($eqLogics as $eqLogic) {
             $n = $eqLogic->getName();
@@ -307,7 +333,7 @@ class airsend extends eqLogic {
     }
 
     public static function getBaseDevice($localip){
-        $plugin = plugin::byId('airsend');
+        $plugin = plugin::byId(self::getPluginId());
         $eqLogics = eqLogic::byType($plugin->getId());
         foreach ($eqLogics as $eqLogic) {
             $deviceType = intval($eqLogic->getConfiguration('device_type'));
@@ -339,7 +365,7 @@ class airsend extends eqLogic {
                         if ($protocol > 0) {
                             try{
                                 $eqLogic = new airsend();
-                                $eqLogic->setEqType_name("airsend");
+                                $eqLogic->setEqType_name(self::getPluginId());
                                 $eqLogic->setName($device['name']);
                                 $eqLogic->setConfiguration('device_type', $device['type']);
                                 $eqLogic->setConfiguration('localip', $device['localip']);
@@ -350,6 +376,9 @@ class airsend extends eqLogic {
                                 }
                                 if(isset($device['mac'])){
                                     $eqLogic->setConfiguration('mac', $device['mac']);
+                                }
+                                if(isset($device['seed'])){
+                                    $eqLogic->setConfiguration('seed', $device['seed']);
                                 }
                                 if(isset($device['presstype'])){
                                     $eqLogic->setConfiguration('presstype', $device['presstype']);
@@ -384,7 +413,7 @@ class airsend extends eqLogic {
             if (!$baseEq) {
                 try{
                     $eqLogic = new airsend();
-                    $eqLogic->setEqType_name("airsend");
+                    $eqLogic->setEqType_name(self::getPluginId());
                     $eqLogic->setName($iface['name']);
                     $eqLogic->setConfiguration('device_type', '0');
                     $eqLogic->setConfiguration('localip', $iface['localip']);
@@ -426,7 +455,7 @@ class airsend extends eqLogic {
                 return null;
             $eqLogic->setName($name);
             $eqLogic->setLogicalId($name);
-            $eqLogic->setEqType_name('airsend');
+            $eqLogic->setEqType_name(self::getPluginId());
             $eqLogic->setIsEnable(1);
             $eqLogic->setIsVisible(1);
             if(array_key_exists("counter", $channel)){
@@ -435,29 +464,39 @@ class airsend extends eqLogic {
             $eqLogic->setConfiguration('localip', $device_base->getConfiguration('localip'));
             $eqLogic->setConfiguration('protocol', $channel['id']);
             $eqLogic->setConfiguration('address', $channel['source']);
+            if(isset($channel['mac'])){
+                $eqLogic->setConfiguration('mac', $channel['mac']);
+            }
             if(isset($channel['seed'])){
-                $eqLogic->setConfiguration('mac', $channel['seed']);
+                $eqLogic->setConfiguration('seed', $channel['seed']);
             }
             $thingnotes = $event['thingnotes'];
             $notes = $thingnotes['notes'];
-            $cmdLogicalId = null;
+            $cmdLogicalId = array();
             if(is_array($notes) && count($notes) > 0){
-                $note = $notes[0];
-                $value = $note['value'];
-                if($note['type'] == 0){		    //STATE
-                    if($value == 18){
+                foreach ($notes as $key => $note) {
+                    $value = $note['value'];
+                    if($note['type'] == 0){		    //STATE
+                        if($value == 18){
+                            $type = 4096;
+                        }else if($value == 19 || $type == 20){
+                            $type = 4097;
+                        }else{
+                            $type = 4098;
+                        }
+                    }else if($note['type'] == 1){   //DATA
                         $type = 4096;
-                    }else if($value == 19 || $type == 20){
-                        $type = 4097;
-                    }else{
-                        $type = 4098;
+                        $eqLogic->setConfiguration('opt', $value);
+                    }else if($note['type'] == 2){   //TEMPERATURE
+                        $type = 1;
+                        $cmdLogicalId[] = "temperature";
+                    }else if($note['type'] == 3){   //ILLUMINANCE
+                        $type = 1;
+                        $cmdLogicalId[] = "illuminance";
+                    }else if($note['type'] == 4){   //R_HUMIDITY
+                        $type = 1;
+                        $cmdLogicalId[] = "r_humidity";
                     }
-                }else if($note['type'] == 1){   //DATA
-                    $type = 4096;
-                    $eqLogic->setConfiguration('opt', $value);
-                }else if($note['type'] == 2){   //TEMPERATURE
-                    $type = 1;
-                    $cmdLogicalId = "temperature";
                 }
             }
             if($type > 0){
@@ -466,10 +505,12 @@ class airsend extends eqLogic {
                 if (method_exists($eqLogic, 'postAjax')) {
                     $eqLogic->postAjax();
                 }
-                if(isset($cmdLogicalId)){
-                    $cmd = airsendCmd::createFromLogicalId($cmdLogicalId, $eqLogic->getId());
-                    if($cmd){
-                        $cmd->save();
+                if(count($cmdLogicalId) > 0){
+                    foreach ($cmdLogicalId as $key => $value) {
+                        $cmd = airsendCmd::createFromLogicalId($value, $eqLogic->getId());
+                        if($cmd){
+                            $cmd->save();
+                        }
                     }
                 }
                 $msg = __('Nouvel appareil sans fil ajouté', __FILE__);
@@ -489,9 +530,19 @@ class airsend extends eqLogic {
         return $value;
 	}
 
+    public static function toBasicChannel($channel){
+        $result = array();
+        $uniquefield = array('id', 'source');
+        foreach ($channel as $key => $value) {
+            if (in_array($key, $uniquefield)) {
+                $result[$key] = $value;
+            }
+        }
+        return $result;
+    }
     public static function toUniqueChannel($channel){
         $result = array();
-        $uniquefield = array('id', 'source', 'seed');
+        $uniquefield = array('id', 'source', 'mac', 'seed');
         foreach ($channel as $key => $value) {
             if (in_array($key, $uniquefield)) {
                 $result[$key] = $value;
@@ -513,7 +564,7 @@ class airsend extends eqLogic {
     public static function toUniqueChannelName($channel){
         $result = self::getChannelName($channel['id']);
         if($result){
-            $uniquefield = array('source', 'seed');
+            $uniquefield = array('source', 'mac', 'seed');
             foreach ($uniquefield as $field) {
                 if(array_key_exists($field, $channel)){
                     $result .= "_";
@@ -565,7 +616,7 @@ class airsend extends eqLogic {
                 $failover = $this->getConfiguration('failover');
             }else{
                 //Search password
-                $eqLogics = eqLogic::byType('airsend');
+                $eqLogics = eqLogic::byType(self::getPluginId());
                 foreach ($eqLogics as $eqLogic){
                     $lip = $eqLogic->getConfiguration('localip');
                     if($lip == $localip){
@@ -598,8 +649,7 @@ class airsend extends eqLogic {
         if($deviceType == 0){
             $asAddr = $this->getAddress();
             if(isset($asAddr)){
-                $callbackurl = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp') . '/plugins/airsend/core/php/jeeAirSend.php?apikey='.jeedom::getApiKey('airsend');
-                $data = "{\"channel\":{\"id\":1},\"duration\":0,\"callback\":\"".$callbackurl."\"}";
+                $data = "{\"channel\":{\"id\":1},\"duration\":0,\"callback\":\"". self::getCallbackUrl() ."\"}";
                 self::request("airsend/bind", $data, 'POST', $asAddr);
             }
         }
@@ -634,13 +684,17 @@ class airsend extends eqLogic {
         $result['id'] = self::toUIntValue($this->getConfiguration('protocol'));
         if($result['id'] > 0){
             $source = $this->getConfiguration('address', null);
-            $seed = $this->getConfiguration('mac', null);
+            $mac = $this->getConfiguration('mac', null);
+            $seed = $this->getConfiguration('seed', null);
             $presstype = $this->getConfiguration('presstype', 0);
             if($source){
                 $result['source'] = self::toUIntValue($source);
             }
+            if($mac){
+                $result['counter'] = $mac;
+                $result['mac'] = $mac;
+            }
             if($seed){
-                $result['counter'] = $seed;
                 $result['seed'] = $seed;
             }
             if($presstype > 0){
@@ -650,12 +704,31 @@ class airsend extends eqLogic {
         return $result;
     }
 
-    public function isChannel($channel){
+    public function isChannelCompatible($channel){
         $result = false;
         if(isset($channel)){
-            $channel = self::toUniqueChannel($channel);
-            $lchan = self::toUniqueChannel($this->getChannel());
+            $channel = self::toBasicChannel($channel);
+            $lchan = self::toBasicChannel($this->getChannel());
             $result = ($channel == $lchan);
+        }
+        return $result;
+    }
+    public function isThingNotesCompatible($notes){
+        $result = false;
+        if(is_array($notes) && count($notes) > 0){
+            $deviceType = intval($this->getConfiguration('device_type'));
+            if($deviceType == 4096){
+                $opt = $this->getConfiguration('opt', null);
+                foreach ($notes as $i => $note) {
+                    if($note['type'] == 1){	//DATA
+                        if($note['value'] == $opt){        //Check DATA
+                            $result = true;
+                        }
+                    }
+                }
+            }else{
+                $result = true;
+            }
         }
         return $result;
     }
@@ -678,7 +751,7 @@ class airsend extends eqLogic {
         $msg = $error_message[0];
         if($event_type < count($error_message))
             $msg = $error_message[$event_type];
-        log::add('airsend', 'error', __('Erreur exécution de la commande ', __FILE__) . $cmd->getHumanName() . ' : ' . $msg);
+        log::add(self::getPluginId(), 'error', __('Erreur exécution de la commande ', __FILE__) . $cmd->getHumanName() . ' : ' . $msg);
         event::add('jeedom::alert', array('level' => 'danger', 'message' => $msg));
         //Update state collectdate
         $statecmd = airsendCmd::byEqLogicIdAndLogicalId($this->getId(), 'state');
@@ -741,6 +814,9 @@ class airsend extends eqLogic {
                 }else if($note['type'] == 3){	//ILLUMINANCE
                     $slogicalid = 'illuminance';
                     $svalue = floatval($ovalue);
+                }else if($note['type'] == 4){	//R_HUMIDITY
+                    $slogicalid = 'r_humidity';
+                    $svalue = intval($ovalue);
                 }
                 if(isset($slogicalid) && $toggle == true){
                     $statecmd = airsendCmd::byEqLogicIdAndLogicalId($this->getId(), $slogicalid);
@@ -1000,12 +1076,12 @@ class airsendCmd extends cmd {
 
     /*     * ***********************Methode static*************************** */
     public static function createFromLogicalId($logicalId, $eqLogicId){
-        $infofield = array('state', 'temperature', 'illuminance');
+        $infofield = array('state', 'temperature', 'illuminance', 'r_humidity');
         $actionfield = array('refresh', 'toggle', 'off', 'on', 'stop', 'down', 'up');
         if(isset($eqLogicId) && isset($logicalId) && (in_array($logicalId, $infofield) || in_array($logicalId, $actionfield))){
             $cmd = new airsendCmd();
             $cmd->setEqLogic_id($eqLogicId);
-            $cmd->setEqType('airsend');
+            $cmd->setEqType(airsend::getPluginId());
             $cmd->setLogicalId($logicalId);
             if(in_array($logicalId, $actionfield)){
                 $cmd->setType('action');
@@ -1061,6 +1137,12 @@ class airsendCmd extends cmd {
                     $cmd->setDisplay('icon', '<i class="icon nature-weather1"></i>');
                     $cmd->setDisplay('generic_type', 'LIGHT_BRIGHTNESS');
                     $cmd->setUnite('lux');
+                }else if($logicalId == "r_humidity"){
+					$cmd->setTemplate('dashboard', 'tile');
+                    $cmd->setName(__('Humidité relative', __FILE__));
+                    $cmd->setDisplay('icon', '<i class="icon jeedomapp-humidity"></i>');
+                    $cmd->setDisplay('generic_type', 'HUMIDITY');
+                    $cmd->setUnite('%');
                 }
             }
             return $cmd;
@@ -1091,7 +1173,7 @@ class airsendCmd extends cmd {
 
     public static function transfer($device, $channel, $thingnotes, $eqLogic = null){
         $data = array();
-        $data['callback'] = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp') . '/plugins/airsend/core/php/jeeAirSend.php?apikey='.jeedom::getApiKey('airsend');
+        $data['callback'] = airsend::getCallbackUrl();
         $data['channel'] = $channel;
         $data['thingnotes'] = $thingnotes;
         $res = airsend::request("airsend/transfer", json_encode($data, true), 'POST', $device);

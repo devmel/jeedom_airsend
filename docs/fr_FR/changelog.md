@@ -1,3 +1,7 @@
+09/09/2021
+
+Amélioration de la fiabilité de réception, gestion de sondes température/humidité
+
 31/05/2021
 
 Refonte complète : Etat générique, Gestion multi-commande, Radio émission/réception 
