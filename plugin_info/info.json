@@ -2,6 +2,8 @@
 	"id" : "airsend",
 	"name" : "AirSend",
     "description": {
+        "en_US": "Plugin allowing the use of an AirSend device (http://devmel.com/airsend) in RF433 transmission and reception. This plugin is completely autonomous and requires neither internet connection nor cloud. AirSend is compatible with many brands of wireless devices (rolling code and fixed code).",
+        "es_ES": "Complemento que permite el uso de un dispositivo AirSend (http://devmel.com/airsend) en la transmisión y recepción de RF433. Este complemento es completamente autónomo y no requiere conexión a Internet ni nube. AirSend es compatible con muchas marcas de dispositivos inalámbricos (código variable y código fijo).",
         "fr_FR": "Plugin permettant d’utiliser un appareil AirSend ( http://devmel.com/airsend ) en émission et réception RF433. Ce plugin est totalement autonome et ne nécessite ni connexion internet, ni cloud. AirSend est compatible avec de nombreuses marques d’appareils sans fils (code tournant et code fixe) : Allmatic, Aluprof, Asamotor, Avidsen, Avosdim, Benincà, Bft, Blyss, Came, Cardin, Chacon, Chamberlain, Cherubini, Cibofer, Conrad, Dea, Deprat, DiO, Ditec, Dooya, Ecostar, Elro, Ematronic, Entrematic, Equation, Everflourish, Evology, Faac, Ferport, Gaposa, Globaltronics, Home Confort Smart Home, Home Easy, Inel, Intertechno, Jarolift, Leb, Liftmaster, Livolo, Meiantech, Mhouse, Monseigneur, Moovo, Motoroll, Nice, Normstahl, Otio, Seav, Simu, Skymaster, Somfy, Telco, V2, Wayne Dalton, Wistar, X10 … Assistance : https://support.devmel.com"
     },
 	"licence" : "AGPL",

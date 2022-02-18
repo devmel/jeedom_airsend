@@ -25,6 +25,12 @@ if (!isConnect('admin')) {
 <form class="form-horizontal">
 	<fieldset>
 		<legend><i class="fas fa-list-alt"></i> {{Général}}</legend>
+		<div class="form-group" style="margin-bottom : 10px;">
+			<label class="col-sm-4 control-label">{{Architectures compatibles}}</label>
+			<div class="col-sm-2">
+				<?php echo "[ ".implode(", ", airsend::getArch())." ]";?>
+			</div>
+		</div>
 		<div class="form-group">
 			<label class="col-sm-4 control-label">{{Port du service d'arrière plan}}</label>
 			<div class="col-sm-2">

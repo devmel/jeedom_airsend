@@ -100,6 +100,9 @@ class airsend extends eqLogic {
 	}
 
 	public static function deamon_start($_auto = false) {
+        if (!is_dir(self::getDataPath())) {
+            mkdir(self::getDataPath());
+        }
         $deamon_info = self::deamon_info();
         if ($deamon_info['launchable'] != 'ok' || $deamon_info['state'] == 'ok') {
             return;
@@ -138,6 +141,11 @@ class airsend extends eqLogic {
             $pid = trim(file('AirSendWebService.lock')[0]);
             if(isset($pid) && is_numeric($pid)){
                 system::kill(intval($pid));
+				sleep(1);
+				try{
+					$request_shell = new com_shell('sudo kill -9 ' . intval($pid));
+					$request_shell->exec();
+				} catch (Exception $e) {}
             }
         }else{
             $procs = exec("pidof AirSendWebService");
@@ -174,7 +182,10 @@ class airsend extends eqLogic {
         return self::getPluginPath() . 'ressources/Devmel_Apps.gpg';
     }
     public static function getChannelsInformationFile(){
-        return self::getPluginPath() . 'ressources/channels.json';
+        return self::getDataPath() . 'channels.json';
+    }
+    public static function getDataPath(){
+        return self::getPluginPath() . 'data/';
     }
     public static function getTmpPath(){
         return '/tmp/'; //jeedom::getTmpFolder(self::getPluginId())
@@ -655,6 +666,7 @@ class airsend extends eqLogic {
         }
     }
     public function close(){
+        $this->updateChannelInformation();
         $deviceType = intval($this->getConfiguration('device_type'));
         if($deviceType == 0){
             $asAddr = $this->getAddress();
@@ -665,17 +677,29 @@ class airsend extends eqLogic {
     }
 
     public function updateChannelInformation(){
+        $updated = false;
         $asAddr = $this->getAddress();
         if($asAddr !== false){
             $res = airsend::request("airsend/channels", null, 'GET', $asAddr);
             if($res !== false && isset($res) && is_array($res) && isset($res['data'])){
                 $cur_channels = self::getChannelsInformation();
                 $channelsInformation = json_decode($res['data']);
-                if(is_array($channelsInformation) && count($channelsInformation) > count($cur_channels)){
-                    $file = self::getChannelsInformationFile();
-                    file_put_contents($file, json_encode($channelsInformation));
+                if(is_array($channelsInformation)){
+                    $updated = true;
+                    if(count($channelsInformation) > count($cur_channels)){
+                        $updated = false;
+                        $file = self::getChannelsInformationFile();
+                        if(file_put_contents($file, json_encode($channelsInformation))){
+                            $updated = true;
+                        }
+                    }
                 }
             }
+        }
+        if($updated == false){
+            $msg = $this->getConfiguration('localip')." : ".__('Echec de la mise à jour des cannaux', __FILE__);
+            log::add(self::getPluginId(), 'error', $msg);
+            event::add('jeedom::alert', array('level' => 'danger', 'message' => $msg));
         }
     }
 

@@ -17,7 +17,7 @@ echo 30 > ${PROGRESS_FILE}
 sudo rm -rf bin
 echo 40 > ${PROGRESS_FILE}
 
-wget https://devmel.com/dl/AirSendWebService.tgz
+wget http://devmel.com/dl/AirSendWebService.tgz
 echo 70 > ${PROGRESS_FILE}
 
 tar -xvf AirSendWebService.tgz

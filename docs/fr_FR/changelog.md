@@ -1,3 +1,7 @@
+18/02/2022
+
+Compatibilité core 4.2
+
 09/09/2021
 
 Amélioration de la fiabilité de réception, gestion de sondes température/humidité
