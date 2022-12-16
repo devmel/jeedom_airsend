@@ -74,8 +74,10 @@ echo '];';
 var success = false;
 
 function onCloseRefresh() {
-    if(success)
+    if(success){
+        alert('{{Veuillez redémarrer le Démon}}')
         location.reload();
+    }
     $('#md_modal').off('dialogclose', onCloseRefresh);
 }
 
@@ -117,7 +119,12 @@ $('#bt_import').on('click', function () {
                 $('#list_import').append($("<li style=\"color:red;\">").text(name+' : {{Erreur}}, {{ce nom existe déjà}}'));
             }else{
                 devices_name.push(name);
-                jeedom.eqLogic.save({"type":"airsend", "eqLogics":[{"name":name, "configuration":{"device_type":data.devices[i].type,"localip":localip,"protocol":data.devices[i].pid,"address":data.devices[i].addr, "opt":data.devices[i].opt, "mac":data.devices[i].mac}}]})
+                configuration = data.devices[i];
+                configuration['localip'] = localip;
+                configuration['device_type'] = data.devices[i].type;
+                configuration['protocol'] = data.devices[i].pid;
+                configuration['address'] = data.devices[i].addr;
+                jeedom.eqLogic.save({"type":"airsend", "eqLogics":[{"name":name, "configuration":configuration}]})
                 $('#list_import').append($("<li style=\"color:green;\">").text(name+' : {{Ajouté}} '));
             }
         }

@@ -45,35 +45,27 @@ class airsend extends eqLogic {
 			$request_shell->exec();	//Permission fix prevent
 		} catch (Exception $e) {}
         chdir($deamon_root);
-        return array('script' => $deamon_root . 'dependancy_install.sh #stype#', 'log' => log::getPathToLog(__CLASS__ . '_update'));
+        return array('script' => $deamon_root . 'dependancy_install.sh #stype# "'. self::getUpdateUrl(). '"', 'log' => log::getPathToLog(__CLASS__ . '_update'));
 	}
 
     /*     * **************************Deamon******************************** */
     public static function deamon_is_signed() {
         $signed = 0;
-        $deamon_file = self::getDeamon();
-        if($deamon_file){
-            $disable_sign = config::byKey('disable_sign', self::getPluginId(), 0);
-            if($disable_sign > 0){
-                $signed = 2;
-            }else{
-                $deamon_root = self::getDeamonPath();
-                if(@chdir($deamon_root)){
-                    try{
-                        $request_shell = new com_shell('sudo chmod 666 ' . self::getTmpPath() . 'trustdb.gpg 2>&1');
-						$request_shell->exec();	//Permission fix prevent
-                    } catch (Exception $e) {}
-                    try{
-                        $request_shell = new com_shell('LC_MESSAGES=C GNUPGHOME="'.self::getTmpPath().'" gpg --no-secmem-warning --no-tty --no-default-keyring --no-options --no-permission-warning --keyring '.self::getPublicSignKey().' --verify '.$deamon_file.'.sig');
-                        $result = $request_shell->exec();
-                        if(strpos($result, "Good signature from \"Devmel Apps <apps@devmel.com>\"") !== false){
-                            $signed = 1;
-                        }
-                    } catch (Exception $e) {
-                        if(strpos($e->getMessage(), ": not found") == true){
-                            $signed = -1;
-                        }
-                    }
+        $disable_sign = config::byKey('disable_sign', self::getPluginId(), 0);
+        if($disable_sign > 0){
+            $signed = 2;
+        }else{
+            try{
+                $deamon_file = self::getDeamon();
+                $request_shell = new com_shell('LC_MESSAGES=C GNUPGHOME="'.self::getDataPath().'" gpg --no-secmem-warning --no-tty --no-default-keyring --no-options --no-permission-warning --keyring '.self::getPublicSignKey().' --verify '.$deamon_file.'.sig');
+                $result = $request_shell->exec();
+                if(strpos($result, "Good signature from \"Devmel Apps <apps@devmel.com>\"") !== false){
+                    $signed = 1;
+                }
+            } catch (Exception $e) {
+                $signed = -2;
+                if(strpos($e->getMessage(), ": not found") == true){
+                    $signed = -1;
                 }
             }
         }
@@ -107,6 +99,11 @@ class airsend extends eqLogic {
         if ($deamon_info['launchable'] != 'ok' || $deamon_info['state'] == 'ok') {
             return;
         }
+		$randstr = "S".rand()."S";
+		$cbstatus = @file_get_contents(self::getCallbackUrl()."&status=".$randstr);
+		if($cbstatus !== $randstr){
+            throw new Exception( __('Page de callback injoignable : ', __FILE__) . __('veuillez vérifier la configuration réseau, notamment lurl interne', __FILE__));
+		}
         $port_server = config::byKey('port_server', self::getPluginId(), 33863);
         $signed = self::deamon_is_signed();
         if($signed == 1 || $signed == 2){
@@ -127,7 +124,7 @@ class airsend extends eqLogic {
                 self::devices_start();
                 return true;
             }
-        }else if($signed < 0){
+        }else if($signed == -1){
             throw new Exception( __('Signature invérifiable (gpg manquant) : ', __FILE__) . __('veuillez mettre a jour les dépendances', __FILE__));
         }else{
             throw new Exception( __('Signature erronée : ', __FILE__). __('veuillez mettre a jour les dépendances', __FILE__));
@@ -218,6 +215,13 @@ class airsend extends eqLogic {
         }
         return $ret;
     }
+    public static function getUpdateUrl() {
+        $url_update = config::byKey('url_update', self::getPluginId(), null);
+        if (empty($url_update) || filter_var($url_update, FILTER_VALIDATE_URL) === false) {
+            $url_update = 'http://devmel.com/dl/AirSendWebService.tgz';
+        }
+        return $url_update;
+    }
     public static function getCallbackUrl(){
         $base = network::getNetworkAccess('internal', 'proto:127.0.0.1:port:comp');
         if(empty($base) || stripos($base, 'https://') === 0){
@@ -242,7 +246,8 @@ class airsend extends eqLogic {
         $port_server = config::byKey('port_server', self::getPluginId(), 33863);
         $full_url = 'http://127.0.0.1:' . $port_server . '/' . $url;
         $result = false;
-        if ((extension_loaded('curl') === true) && (is_resource($curl = curl_init()) === true)){
+        if (extension_loaded('curl') === true){
+            $curl = curl_init();
             curl_setopt($curl, CURLOPT_URL, $full_url);
             curl_setopt($curl, CURLOPT_AUTOREFERER, true);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -288,8 +293,9 @@ class airsend extends eqLogic {
                 if($deviceType == 0){
                     $eqLogic->updateChannelInformation();
                     $asAddr = $eqLogic->getAddress();
-                    if($eqLogic->getConfiguration('listenmode', null)){
-                        $eqLogic->bind();
+                    $channelid = $eqLogic->getConfiguration('listenmode', 0);
+                    if($channelid > 0){
+                        $eqLogic->bind($channelid);
                     }
                 }
             } catch (Exception $exc) {}
@@ -371,7 +377,7 @@ class airsend extends eqLogic {
                 $baseEq = self::getBaseDevice($device['localip']);
                 if ($baseEq) {
                     $deviceType = intval($device['type']);
-                    if($deviceType >= 4096 && $deviceType <= 4098){
+                    if($deviceType >= 4096 && $deviceType <= 4099){
                         $protocol = intval($device['pid']);
                         if ($protocol > 0) {
                             try{
@@ -655,12 +661,13 @@ class airsend extends eqLogic {
         return false;
     }
 
-    public function bind(){
+    public function bind($channelid){
         $deviceType = intval($this->getConfiguration('device_type'));
         if($deviceType == 0){
             $asAddr = $this->getAddress();
             if(isset($asAddr)){
-                $data = "{\"channel\":{\"id\":1},\"duration\":0,\"callback\":\"". self::getCallbackUrl() ."\"}";
+                $channelid = intval($channelid);
+                $data = "{\"channel\":{\"id\":".$channelid."},\"duration\":0,\"callback\":\"". self::getCallbackUrl() ."\"}";
                 self::request("airsend/bind", $data, 'POST', $asAddr);
             }
         }
@@ -677,29 +684,30 @@ class airsend extends eqLogic {
     }
 
     public function updateChannelInformation(){
-        $updated = false;
         $asAddr = $this->getAddress();
         if($asAddr !== false){
+            $updated = false;
             $res = airsend::request("airsend/channels", null, 'GET', $asAddr);
             if($res !== false && isset($res) && is_array($res) && isset($res['data'])){
-                $cur_channels = self::getChannelsInformation();
                 $channelsInformation = json_decode($res['data']);
                 if(is_array($channelsInformation)){
                     $updated = true;
+                    $cur_channels = self::getChannelsInformation();
                     if(count($channelsInformation) > count($cur_channels)){
-                        $updated = false;
                         $file = self::getChannelsInformationFile();
-                        if(file_put_contents($file, json_encode($channelsInformation))){
-                            $updated = true;
+                        if(file_put_contents($file, json_encode($channelsInformation)) == false){
+                            $msg = __('Erreur decriture du fichier de gestion des canaux', __FILE__);
+                            log::add(self::getPluginId(), 'error', $msg);
+                            event::add('jeedom::alert', array('level' => 'error', 'message' => $msg));
                         }
                     }
                 }
             }
-        }
-        if($updated == false){
-            $msg = $this->getConfiguration('localip')." : ".__('Echec de la mise à jour des cannaux', __FILE__);
-            log::add(self::getPluginId(), 'error', $msg);
-            event::add('jeedom::alert', array('level' => 'danger', 'message' => $msg));
+            if($updated == false){
+                $msg = $this->getConfiguration('localip')." : ".__('Echec de la mise à jour des canaux', __FILE__);
+                log::add(self::getPluginId(), 'warning', $msg);
+                event::add('jeedom::alert', array('level' => 'warning', 'message' => $msg));
+            }
         }
     }
 
@@ -757,7 +765,7 @@ class airsend extends eqLogic {
         return $result;
     }
 
-    public function updateErrorWithEvent($event_type, $collectdate, $cmd){
+    public function updateErrorWithEvent($event_type, $collectdate, $cmd, $disp = true){
         //Message UNKNOWN,NETWORK,SYNCHRONIZATION,SECURITY,BUSY,TIMEOUT,UNSUPPORTED,INCOMPLETE,FULL
         $error_message = array();
         $error_message[] = __('Une erreur inconnue est survenue', __FILE__);
@@ -775,14 +783,17 @@ class airsend extends eqLogic {
         $msg = $error_message[0];
         if($event_type < count($error_message))
             $msg = $error_message[$event_type];
-        log::add(self::getPluginId(), 'error', __('Erreur exécution de la commande ', __FILE__) . $cmd->getHumanName() . ' : ' . $msg);
-        event::add('jeedom::alert', array('level' => 'danger', 'message' => $msg));
+		
         //Update state collectdate
         $statecmd = airsendCmd::byEqLogicIdAndLogicalId($this->getId(), 'state');
         if(isset($statecmd) && is_object($statecmd)){
-            $svalue = $statecmd->execCmd();
+			$svalue = 0;
             $this->checkAndUpdateCmd('state', $svalue, $collectdate);
         }
+		if($disp){
+			log::add(self::getPluginId(), 'error', __('Erreur exécution de la commande ', __FILE__) . $cmd->getHumanName() . ' : ' . $msg);
+			event::add('jeedom::alert', array('level' => 'danger', 'message' => $msg));
+		}
     }
 
     public function updateStateWithNotes($notes, $collectdate){
@@ -841,6 +852,9 @@ class airsend extends eqLogic {
                 }else if($note['type'] == 4){	//R_HUMIDITY
                     $slogicalid = 'r_humidity';
                     $svalue = intval($ovalue);
+                }else if($note['type'] == 9){	//LEVEL
+                    $slogicalid = 'state';
+                    $svalue = intval($ovalue);
                 }
                 if(isset($slogicalid) && $toggle == true){
                     $statecmd = airsendCmd::byEqLogicIdAndLogicalId($this->getId(), $slogicalid);
@@ -866,7 +880,36 @@ class airsend extends eqLogic {
             if(!is_array($cmd_list)){
                 $cmd_list = array();
             }
-            if($deviceType == 4098){
+            if($deviceType == 4099){
+                foreach ($cmd_list as $cmd){
+                    if ($cmd->getLogicalId() == 'slide' && !$cmds["slide"]) {
+                        $cmds["slide"] = $cmd;
+                    }else if ($cmd->getLogicalId() == 'state' && !$cmds["state"]) {
+                        $cmds["state"] = $cmd;
+                    }else{
+                        $cmd->remove();
+                    }
+                }
+                if(!$cmds["state"]){
+                    $cmds["state"] = airsendCmd::createFromLogicalId("state", $this->getId());
+                    if($cmds["state"]){
+                        $cmds["state"]->setTemplate('dashboard', 'shutter');
+                        $cmds["state"]->setTemplate('mobile', 'shutter');
+                        $cmds["state"]->setDisplay('generic_type', 'FLAP_STATE');
+                        $cmds["state"]->setOrder(1);
+                        $cmds["state"]->save();
+                    }
+                }
+                if($copyable && !$cmds["slide"]){
+                    $cmds["slide"] = airsendCmd::createFromLogicalId("slider", $this->getId());
+                    if($cmds["slide"]){
+                        $cmds["slide"]->setValue(null);
+                        $cmds["slide"]->setOrder(2);
+                        $cmds["slide"]->save();
+                    }
+                }
+
+            }else if($deviceType == 4098){
                 foreach ($cmd_list as $cmd){
                     if ($cmd->getLogicalId() == 'stop' && !$cmds["stop"]) {
                         $cmds["stop"] = $cmd;
@@ -982,32 +1025,45 @@ class airsend extends eqLogic {
                     }
                 }
             }else if($deviceType == 0){
+                $airsend_version = $this->getConfiguration('airsend_version', 0);
+                $has_sensors = ($airsend_version == 0) ? true : false;
                 foreach ($cmd_list as $cmd){
-                    if ($cmd->getLogicalId() == 'temperature' && !$cmds["temperature"]) {
+                    if ($has_sensors && $cmd->getLogicalId() == 'temperature' && !$cmds["temperature"]) {
                         $cmds["temperature"] = $cmd;
-                    }else if ($cmd->getLogicalId() == 'illuminance' && !$cmds["illuminance"]) {
+                    }else if ($has_sensors && $cmd->getLogicalId() == 'illuminance' && !$cmds["illuminance"]) {
                         $cmds["illuminance"] = $cmd;
+                    }else if (!$has_sensors && $cmd->getLogicalId() == 'state' && !$cmds["state"]) {
+                        $cmds["state"] = $cmd;
                     }else if ($cmd->getLogicalId() == 'refresh' && !$cmds["refresh"]) {
                         $cmds["refresh"] = $cmd;
                     }else{
                         $cmd->remove();
                     }
                 }
-                if(!$cmds["illuminance"]){
+                if($has_sensors && !$cmds["illuminance"]){
                     $cmds["illuminance"] = airsendCmd::createFromLogicalId("illuminance", $this->getId());
                     if($cmds["illuminance"]){
                         $cmds["illuminance"]->setOrder(2);
                         $cmds["illuminance"]->save();
                     }
                 }
-                if(!$cmds["temperature"]){
+                if($has_sensors && !$cmds["temperature"]){
                     $cmds["temperature"] = airsendCmd::createFromLogicalId("temperature", $this->getId());
                     if($cmds["temperature"]){
                         $cmds["temperature"]->setOrder(1);
                         $cmds["temperature"]->save();
                     }
                 }
-                if($copyable && !$cmds["refresh"]){
+                if(!$has_sensors && !$cmds["state"]){
+                    $cmds["state"] = airsendCmd::createFromLogicalId("state", $this->getId());
+                    if($cmds["state"]){
+                        $cmds["state"]->setSubType('binary');
+                        $cmds["state"]->setDisplay('generic_type', 'BARRIER_STATE');
+                        $cmds["state"]->setOrder(1);
+                        $cmds["state"]->save();
+                    }
+                }
+                if(!$cmds["refresh"]){
                     $cmds["refresh"] = airsendCmd::createFromLogicalId("refresh", $this->getId());
                     if($cmds["refresh"]){
                         $cmds["refresh"]->setOrder(0);
@@ -1030,8 +1086,9 @@ class airsend extends eqLogic {
     }
 
     public function postAjax() {
-        if($this->getConfiguration('listenmode', null)){
-            $this->bind();
+        $channelid = $this->getConfiguration('listenmode', 0);
+        if($channelid > 0){
+            $this->bind($channelid);
         }
         $this->autoGenerateCommands();
     }
@@ -1044,7 +1101,7 @@ class airsend extends eqLogic {
                 throw new Exception( __('Erreur de configuration : ', __FILE__) . __('localip invalide', __FILE__));
             }
             $deviceType = intval($this->getConfiguration('device_type'));
-            if($deviceType >= 4096 && $deviceType <= 4098){
+            if($deviceType >= 4096 && $deviceType <= 4099){
                 $protocol = intval($this->getConfiguration('protocol'));
                 if ($protocol <= 0) {
                     throw new Exception( __('Erreur de configuration : ', __FILE__) . __('protocole invalide', __FILE__));
@@ -1101,12 +1158,14 @@ class airsendCmd extends cmd {
     /*     * ***********************Methode static*************************** */
     public static function createFromLogicalId($logicalId, $eqLogicId){
         $infofield = array('state', 'temperature', 'illuminance', 'r_humidity');
-        $actionfield = array('refresh', 'toggle', 'off', 'on', 'stop', 'down', 'up');
+        $actionfield = array('refresh', 'toggle', 'off', 'on', 'stop', 'down', 'up', 'slider');
         if(isset($eqLogicId) && isset($logicalId) && (in_array($logicalId, $infofield) || in_array($logicalId, $actionfield))){
             $cmd = new airsendCmd();
             $cmd->setEqLogic_id($eqLogicId);
             $cmd->setEqType(airsend::getPluginId());
             $cmd->setLogicalId($logicalId);
+            $cmd->setTemplate('dashboard', 'default');
+            $cmd->setTemplate('mobile', 'default');
             if(in_array($logicalId, $actionfield)){
                 $cmd->setType('action');
                 $cmd->setSubType('other');
@@ -1138,12 +1197,18 @@ class airsendCmd extends cmd {
                     $cmd->setName(__('Monter', __FILE__));
                     $cmd->setDisplay('icon', '<i class="fas fa-arrow-up"></i>');
                     $cmd->setDisplay('generic_type', 'FLAP_UP');
+                }else if($logicalId == "slider"){
+                    $cmd->setName(__('Niveau', __FILE__));
+                    $cmd->setConfiguration('minValue' , '0');
+                    $cmd->setConfiguration('maxValue' , '100');
+                    $cmd->setSubType('slider');
+                    $cmd->setTemplate('dashboard', 'sliderVertical');
+                    $cmd->setTemplate('mobile', 'sliderVertical');
+                    $cmd->setDisplay('generic_type', 'FLAP_SLIDER');
                 }
             }else{
                 $cmd->setType('info');
                 $cmd->setSubType('numeric');
-                $cmd->setTemplate('dashboard', 'default');
-                $cmd->setTemplate('mobile', 'default');
                 $cmd->setDisplay('showNameOndashboard', '0');
                 $cmd->setDisplay('showNameOnmobile', '0');
                 if($logicalId == "state"){
@@ -1185,7 +1250,7 @@ class airsendCmd extends cmd {
             foreach ($cmds as $c) {
                 if(is_object($c)){
                     $type = strtoupper($c->getLogicalId());
-                    if($type == 'TEMPERATURE' || $type == 'ILLUMINANCE'){
+                    if($type == 'TEMPERATURE' || $type == 'ILLUMINANCE' || $type == 'STATE'){
                         $thingnotes = self::thingnotesQuery($type);
                         $thingnotes['uid'] = airsend::toUIntValue($c->getId());
                         self::transfer($asAddr, $channel, $thingnotes, $eqLogic);
@@ -1227,29 +1292,32 @@ class airsendCmd extends cmd {
 
 
     /*     * *********************Methode d'instance************************* */
-    public function getThingNotes(){
-        $opt = null;
-        $command = airsend::toUIntValue($this->getValue());
-        $eqLogic = $this->getEqLogic();
-        if(isset($eqLogic))
-            $opt = $eqLogic->getConfiguration('opt', null);
+    public function getThingNotes($_options){
+        $statemap = array("OFF", "ON", "PROG", "STOP", "DOWN", "UP", "TOGGLE");
+
         $thingnotes = array();
         $thingnotes['uid'] = airsend::toUIntValue($this->getId());
         $thingnotes['notes'] = array();
 
         $note = array();
         $note['method'] = "PUT";
-        if($command == 6 && isset($opt)){
-            $note['type'] = "DATA";
-            $note['value'] = airsend::toUIntValue($opt);
-        }else{
+
+        $logicalId = strtoupper($this->getLogicalId());
+        $eqLogic = $this->getEqLogic();
+        $opt = (isset($eqLogic)) ? airsend::toUIntValue($eqLogic->getConfiguration('opt', null)) : null;
+        if(!empty($opt) && $logicalId === 'TOGGLE'){
+            $logicalId = 'DATA';   
+        }
+
+        if(in_array($logicalId, $statemap)){
             $note['type'] = "STATE";
-            $cmdmap = array("OFF", "ON", "PROG", "STOP", "DOWN", "UP", "TOGGLE");
-            $value = "TOGGLE";
-            if($command < count($cmdmap)){
-                $value = $cmdmap[$command];
-            }
-            $note['value'] = $value;
+            $note['value'] = $logicalId;
+        }else if($logicalId === 'SLIDER'){
+            $note['type'] = "LEVEL";
+            $note['value'] = airsend::toUIntValue($_options['slider']);
+        }else{
+            $note['type'] = "DATA";
+            $note['value'] = $opt;
         }
         $thingnotes['notes'][0] = $note;
         return $thingnotes;
@@ -1271,7 +1339,7 @@ class airsendCmd extends cmd {
                     airsendCmd::readSensors($eqLogic, 0x1);
                 }else{
                     $channel = $eqLogic->getChannel();
-                    $thingnotes = $this->getThingNotes();
+                    $thingnotes = $this->getThingNotes($_options);
                     self::transfer($asAddr, $channel, $thingnotes, $eqLogic);
                 }
             }else{

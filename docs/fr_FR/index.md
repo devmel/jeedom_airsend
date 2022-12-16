@@ -35,10 +35,11 @@ Toute votre configuration mobile (appareils AirSend et appareils sans fil) est c
 - Choisissez un "Objet parent", les sondes de l'appareil s'afficheront à cet endroit.
 - Cliquez sur "Activer" et "Visible".
 - Choisissez "Type d'appareil" : "Boiter AirSend".
+- Cochez "AirSend Duo" s'il s'agit d'un AirSend suo.
 - Renseignez le "LocalIP" et "Password" se trouvant au dos de votre appareil AirSend.
 - Cochez "Passerelle Internet" si votre AirSend n'est pas sur le réseau local.
 - Renseignez "Adresse Secondaire" par l'ipv4 du AirSend si la communication ipv6 locale ne fonctionne pas (avec docker par exemple).
-- Cochez "Ecoute permanente" si vous souhaitez basculer en mode réception radio permanente (voir ci-dessous).
+- Choisissez un canal d'"Ecoute permanente" si vous souhaitez basculer en mode réception radio permanente (voir ci-dessous).
 - Cochez "Inclusion automatique" pour que les appareils détectés soit ajoutés directement.
 - Pour finir cliquez sur "Sauver/Générer".
 
@@ -79,7 +80,7 @@ Le déclenchement de scénarios est également possible à partir du nouvel éta
 Liste des appareils sans fil compatibles
 ===
 
-Vous trouverez la liste des appareils sans fil compatibles : <https://devmel.com/fr/airsend.html#compatibility>
+Vous trouverez la liste des appareils sans fil compatibles : <https://devmel.com/fr/airsend.html#compatibility> ou <https://devmel.com/fr/airsend-duo#compatibility_duo>
 
 Conseils
 ===

@@ -23,6 +23,11 @@ if (!jeedom::apiAccess(init('apikey'), airsend::getPluginId())) {
 	die();
 }
 
+if(isset($_GET["status"])){
+	echo $_GET["status"];
+	die();
+}
+
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true, 512, JSON_BIGINT_AS_STRING);
 
@@ -48,8 +53,9 @@ if (is_array($data) && isset($data['events'])) {
 							$forwardstate = $eqLogic->getConfiguration('forwardstate', null);
 							$forwardstatevalue = $eqLogic->getConfiguration('forwardstatevalue', null);
 						}
-					}else if($channel['id'] > 1 || isset($channel['source'])){
-						$eqLogic->updateErrorWithEvent($val['type'], $collectdate, $cmd);
+					}else{
+						$disp = ($channel['id'] > 1 || isset($channel['source']));
+						$eqLogic->updateErrorWithEvent($val['type'], $collectdate, $cmd, $disp);
 					}
 				}
 			//Interrupt event

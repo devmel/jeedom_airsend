@@ -1,3 +1,7 @@
+16/12/2022
+
+AirSend duo + Télécommande Niveau
+
 18/02/2022
 
 Compatibilité core 4.2

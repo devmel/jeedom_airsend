@@ -89,7 +89,7 @@ foreach ($eqLogics as $eqLogic) {
 </div>
 
 <div class="col-lg-10 col-md-9 col-sm-8 eqLogic" style="border-left: solid 1px #EEE; padding-left: 25px;display: none;">
-<a class="btn btn-success eqLogicAction pull-right" data-action="save"  title="{{Sauver et/ou Générer les commandes automatiquement}}"><i class="fa fa-check-circle"></i> {{Sauver / Générer}}</a>
+<a class="btn btn-success eqLogicAction pull-right" data-action="save" title="{{Sauver et/ou Générer les commandes automatiquement}}"><i class="fa fa-check-circle"></i> {{Sauver / Générer}}</a>
   <a class="btn btn-danger eqLogicAction pull-right" data-action="remove"><i class="fa fa-minus-circle"></i> {{Supprimer}}</a>
   <a class="btn btn-default eqLogicAction pull-right" data-action="configure"><i class="fa fa-cogs"></i> {{Configuration avancée}}</a>
   <ul class="nav nav-tabs" role="tablist">
@@ -114,11 +114,11 @@ foreach ($eqLogics as $eqLogic) {
                 <div class="col-sm-3">
                     <select id="sel_object" class="eqLogicAttr form-control" data-l1key="object_id">
                         <option value="">{{Aucun}}</option>
-<?php
-foreach (jeeObject::all() as $object) {
-	echo '<option value="' . $object->getId() . '">' . $object->getName() . '</option>';
-}
-?>
+                        <?php
+                        foreach (jeeObject::all() as $object) {
+                            echo '<option value="' . $object->getId() . '">' . $object->getName() . '</option>';
+                        }
+                        ?>
                    </select>
                </div>
            </div>
@@ -137,20 +137,24 @@ foreach (jeeObject::all() as $object) {
 	<div class="form-group">
 		<label class="col-sm-3 control-label"></label>
 		<div class="col-sm-9">
-			<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isEnable" checked/>{{Activer}}</label>
-			<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked/>{{Visible}}</label>
+			<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" id="isEnable" data-l1key="isEnable" checked/>{{Activer}}</label>
+			<label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" id="isVisible" data-l1key="isVisible" checked/>{{Visible}}</label>
 		</div>
 	</div>
     <div class="form-group">
         <label class="col-sm-3 control-label">Type d'appareil </label>
         <div class="col-sm-3">
             <select class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="device_type">
-                <option value="0">Boitier AirSend</option>
-                <option value="4096">Télécommande 1-Bouton</option>
-                <option value="4097">Télécommande On-Off</option>
-                <option value="4098">Télécommande Volet roulant</option>
+                <option value="0">{{Boitier AirSend}}</option>
+                <option value="4096">{{Télécommande 1-Bouton}}</option>
+                <option value="4097">{{Télécommande On-Off}}</option>
+                <option value="4098">{{Télécommande Volet roulant}}</option>
+                <option value="4099">{{Télécommande Niveau}}</option>
                 <option value="1">Capteurs</option>
             </select>
+        </div>
+        <div class="col-sm-1 asPassword">
+            <label class="checkbox-inline"><input type="checkbox" class="eqLogicAttr" data-l1key="configuration" data-l2key="airsend_version" placeholder="airsend_version" />{{AirSend Duo}}</label>
         </div>
     </div>
     <div class="form-group">
@@ -188,7 +192,55 @@ foreach (jeeObject::all() as $object) {
     <div class="form-group asPassword">
         <label class="col-sm-3 control-label">{{Ecoute permanente}}</label>
         <div class="col-sm-3">
-            <input type="checkbox" style="margin: 5px;" class="eqLogicAttr" data-l1key="configuration" data-l2key="listenmode" placeholder="listenmode" />
+            <select class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="listenmode">
+                <option value="">{{Non}}</option>
+                <option value="1">{{Generique 433Mhz}}</option>
+                <?php
+                foreach ($channels as $c) {
+                    $decoder = $c->id;
+                    if(property_exists($c,"getDecoder")){
+                        $decoder = intval($c->getDecoder);
+                    }
+                    if($decoder == $c->id){
+                        echo '<option value="'.$c->id.'">';
+                        echo $c->name;
+                        echo '</option>';
+                    }
+                }
+                ?>
+                <option value="-" disabled>--- --- --- --- --- ---</option>
+                <option value="-" disabled>&#x2193; {{Decodage partiel}} &#x2193;</option>
+                <option value="-" disabled>--- --- --- --- --- ---</option>
+                <?php
+                foreach ($channels as $c) {
+                    $decoder = $c->id;
+                    if(property_exists($c,"getDecoder")){
+                        $decoder = intval($c->getDecoder);
+                    }
+                    if($decoder == 0){
+                        echo '<option value="'.$c->id.'">';
+                        echo $c->name;
+                        echo '</option>';
+                    }
+                }
+                ?>
+                <option value="-" disabled>--- --- --- --- --- ---</option>
+                <option value="-" disabled>&#x2193; {{Inclus dans generique}} &#x2193;</option>
+                <option value="-" disabled>--- --- --- --- --- ---</option>
+                <?php
+                foreach ($channels as $c) {
+                    $decoder = $c->id;
+                    if(property_exists($c,"getDecoder")){
+                        $decoder = intval($c->getDecoder);
+                    }
+                    if($decoder == 1){
+                        echo '<option value="'.$c->id.'">';
+                        echo $c->name;
+                        echo '</option>';
+                    }
+                }
+                ?>
+            </select>
         </div>
     </div>
     <div class="form-group asPassword">
@@ -199,8 +251,8 @@ foreach (jeeObject::all() as $object) {
     </div>
     <div class="form-group asProtocols">
         <label class="col-sm-3 control-label">{{Protocole}}</label>
-        <div class="col-sm-3">
-            <select class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="protocol">
+        <div class="col-sm-2">
+            <select id="protocol_select" onchange="document.getElementById('protocol_id').value = this.value"  class="eqLogicAttr form-control">
                 <option value=""></option>
                 <?php
                 foreach ($channels as $proto) {
@@ -208,6 +260,9 @@ foreach (jeeObject::all() as $object) {
                 }
                 ?>
             </select>
+        </div>
+        <div class="col-sm-1">
+            <input type="text" id="protocol_id" onchange="document.getElementById('protocol_select').value = this.value" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="protocol"/>
         </div>
     </div>
     <div class="form-group asProtocols">

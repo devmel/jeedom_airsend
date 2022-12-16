@@ -38,6 +38,12 @@ if (!isConnect('admin')) {
 			</div>
 		</div>
 		<div class="form-group">
+			<label class="col-sm-4 control-label">{{Mise à jour du service d'arrière plan}}</label>
+			<div class="col-sm-2">
+				<input class="configKey form-control" data-l1key="url_update" placeholder="url" />
+			</div>
+		</div>
+		<div class="form-group">
 			<label class="col-sm-4 control-label">{{Ne pas vérifier la signature du service d'arrière plan}}</label>
 			<div class="col-sm-2">
 				<input type="checkbox" class="configKey form-control" data-l1key="disable_sign" />
