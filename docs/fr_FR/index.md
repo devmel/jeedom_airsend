@@ -35,7 +35,7 @@ Toute votre configuration mobile (appareils AirSend et appareils sans fil) est c
 - Choisissez un "Objet parent", les sondes de l'appareil s'afficheront à cet endroit.
 - Cliquez sur "Activer" et "Visible".
 - Choisissez "Type d'appareil" : "Boiter AirSend".
-- Cochez "AirSend Duo" s'il s'agit d'un AirSend suo.
+- Cochez "AirSend Duo" s'il s'agit d'un AirSend duo.
 - Renseignez le "LocalIP" et "Password" se trouvant au dos de votre appareil AirSend.
 - Cochez "Passerelle Internet" si votre AirSend n'est pas sur le réseau local.
 - Renseignez "Adresse Secondaire" par l'ipv4 du AirSend si la communication ipv6 locale ne fonctionne pas (avec docker par exemple).

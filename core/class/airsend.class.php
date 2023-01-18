@@ -27,12 +27,10 @@ class airsend extends eqLogic {
 		$return = array();
 		$return['progress_file'] = '/tmp/dependancy_airsend_in_progress';
         $return['state'] = 'nok';
-        $signed = self::deamon_is_signed();
-        if($signed == 1 || $signed == 2){
+        $deamon_file = self::getDeamon();
+		if ($deamon_file !== null) {
             $return['state'] = 'ok';
         }
-        $deamon_root = self::getScriptPath();
-        chdir($deamon_root);
 		return $return;
     }
 
@@ -85,7 +83,7 @@ class airsend extends eqLogic {
             }
         }
         $deamon_file = self::getDeamon();
-		if (file_exists($deamon_file) && (extension_loaded('curl') === true)) {
+		if ($deamon_file !== null && (extension_loaded('curl') === true)) {
             $return['launchable'] = 'ok';
         }
 		return $return;
