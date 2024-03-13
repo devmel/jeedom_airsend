@@ -432,7 +432,7 @@ class airsend extends eqLogic {
                     $eqLogic->setName($iface['name']);
                     $eqLogic->setConfiguration('device_type', '0');
                     $eqLogic->setConfiguration('localip', $iface['localip']);
-                    $eqLogic->setConfiguration('password', $iface['password']);
+                    $eqLogic->setConfiguration('dev_passwd', $iface['password']);
                     $eqLogic->setConfiguration('gateway', '1');
                     $eqLogic->save();
                     if (method_exists($eqLogic, 'postAjax')) {
@@ -626,7 +626,15 @@ class airsend extends eqLogic {
             }
             $deviceType = intval($this->getConfiguration('device_type'));
             if($deviceType == 0){
-                $password = $this->getConfiguration('password');
+                $dev_passwd = $this->getConfiguration('dev_passwd');
+                if(!$dev_passwd){
+                    //Previous configuration
+                    $dev_passwd = $this->getConfiguration('password');
+                    if(strlen($dev_passwd)>0){
+                        $this->setConfiguration('dev_passwd', $dev_passwd);
+                        $this->save();
+                    }
+                }
                 $gateway = $this->getConfiguration('gateway');
                 $failover = $this->getConfiguration('failover');
             }else{
@@ -635,19 +643,19 @@ class airsend extends eqLogic {
                 foreach ($eqLogics as $eqLogic){
                     $lip = $eqLogic->getConfiguration('localip');
                     if($lip == $localip){
-                        $lpw = $eqLogic->getConfiguration('password');
+                        $lpw = $eqLogic->getConfiguration('dev_passwd');
                         if(strlen($lpw)>0){
-                            $password = $lpw;
+                            $dev_passwd = $lpw;
                             $gateway = $eqLogic->getConfiguration('gateway');
                             $failover = $eqLogic->getConfiguration('failover');
                         }
                     }
-                    if($password && $eqLogic->getIsEnable() <> 0)
+                    if($dev_passwd && $eqLogic->getIsEnable() <> 0)
                         break;
                 }
             }
-            if($password){
-                $str = "\"sp://".$password."@".$addr."/?timeout=6000";
+            if($dev_passwd){
+                $str = "\"sp://".$dev_passwd."@".$addr."/?timeout=6000";
                 $str .= "&gw=".$gateway;
                 if(strlen($failover)>0){
                     $str .= "&rhost=".$failover;

@@ -25,6 +25,11 @@ $('#bt_easyimport_airsend').on('click', function () {
     $('#md_modal').load('index.php?v=d&plugin=airsend&modal=easyimport').dialog('open');
 });
 
+$('#bt_purge').on('click', function () {
+    $('#md_modal').dialog({title: "{{Purge}}"});
+    $('#md_modal').load('index.php?v=d&plugin=airsend&modal=purge').dialog('open');
+});
+
 $('.eqLogicAttr[data-l1key=configuration][data-l2key=device_type]').on('change',function(){
     $('.asToggle').hide();
 	if ($(this).value()=='0'){

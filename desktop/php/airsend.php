@@ -46,25 +46,30 @@ foreach ($eqLogics as $eqLogic) {
 <div class="col-lg-10 col-md-9 col-sm-8 eqLogicThumbnailDisplay" style="border-left: solid 1px #EEE; padding-left: 25px;">
     <legend><i class="fa fa-cog"></i> {{Gestion}}</legend>
     <div class="eqLogicThumbnailContainer">
-        <div class="cursor eqLogicAction" data-action="add" style="text-align: center; background-color : #ffffff; height : 200px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
+        <div class="cursor eqLogicAction" data-action="add" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
             <i class="fa fa-plus-circle" style="font-size : 6em;color:#94ca02;"></i>
             <br>
             <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#94ca02">{{Ajouter}}</span>
         </div>
-        <div class="cursor" id="bt_easyimport_airsend" style="text-align: center; background-color : #ffffff; height : 200px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
+        <div class="cursor" id="bt_easyimport_airsend" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
             <i class="fa fa-mobile" style="font-size : 6em;color:#94ca02;"></i>
             <br>
             <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#94ca02">{{Import mobile}}</span>
         </div>
-        <div class="cursor" id="bt_import_airsend" style="text-align: center; background-color : #ffffff; height : 200px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
+        <div class="cursor" id="bt_import_airsend" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
             <i class="fa fa-file" style="font-size : 6em;color:#94ca02;"></i>
             <br>
             <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#94ca02">{{Import fichier}}</span>
         </div>
-        <div class="cursor eqLogicAction" data-action="gotoPluginConf" style="text-align: center; background-color : #ffffff; height : 200px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;">
+        <div class="cursor" id="bt_purge" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;" >
+            <i class="fa fa-trash" style="font-size : 6em;color:red;"></i>
+            <br>
+            <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:red">{{Purger}}</span>
+        </div>
+        <div class="cursor eqLogicAction" data-action="gotoPluginConf" style="text-align: center; background-color : #ffffff; height : 120px;margin-bottom : 10px;padding : 5px;border-radius: 2px;width : 140px;margin-left : 10px;">
             <i class="fa fa-wrench" style="font-size : 6em;color:#767676;"></i>
             <br>
-            <span style="font-size : 1.1em;position:relative; top : 15px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#767676">{{Configuration}}</span>
+            <span style="font-size : 1.1em;position:relative; top : 23px;word-break: break-all;white-space: pre-wrap;word-wrap: break-word;color:#767676">{{Configuration}}</span>
         </div>
     </div>
     
@@ -174,7 +179,7 @@ foreach ($eqLogics as $eqLogic) {
     <div class="form-group asPassword">
         <label class="col-sm-3 control-label">{{AirSend Password}}</label>
         <div class="col-sm-3">
-            <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="password" placeholder="password" autocomplete="0" />
+            <input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="dev_passwd" placeholder="dev_passwd" autocomplete="0" />
         </div>
     </div>
     <div class="form-group asPassword">
