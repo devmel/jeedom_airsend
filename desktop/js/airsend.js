@@ -82,7 +82,28 @@ function addCmdToTable(_cmd) {
     jeedom.cmd.changeType($('#table_cmd tbody tr:last'), init(_cmd.subType));
 }
 
+function changeVersion(value) {
+    var version = $('#localipSelect option[value="' + value + '"]').data('version');
+    if(version !== undefined){
+        var ch = channels;
+        if(version != 2){
+            ch = channels_v1;
+        }
+        if(ch !== undefined){
+            var $el = $("#protocol_select");
+            $el.empty();
+            $.each(ch, function(key,value) {
+                $el.append($("<option></option>").attr("value", value).text(key));
+            });
+            if($("#protocol_id").val() > 0){
+                $('#protocol_select option[value=' + $("#protocol_id").val() + ']').attr('selected',true);
+            }
+        }
+    }
+}
+
 function autoSelectValue(sel, value) {
+    changeVersion(value);
     for ( var i = 0, len = sel.options.length; i < len; i++ ) {
         opt = sel.options[i];
         if ( opt.value === value ) {

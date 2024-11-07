@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
-require_once dirname(__FILE__) . "/../../../../core/php/core.inc.php";
+ require_once dirname(__FILE__) . "/../../../../core/php/core.inc.php";
 
 if (!jeedom::apiAccess(init('apikey'), airsend::getPluginId())) {
 	log::add(airsend::getPluginId(), 'error', __('Clé API non valide, vous n\'etes pas autorisé à effectuer cette action', __FILE__));
@@ -33,7 +33,7 @@ $data = json_decode($raw, true, 512, JSON_BIGINT_AS_STRING);
 
 if (is_array($data) && isset($data['events'])) {
 	foreach ($data['events'] as $i => $val) {
-		$collectdate = strftime("%Y-%m-%d %H:%M:%S", ($val['timestamp']/1000));
+		$collectdate = date("Y-m-d H:i:s", $val['timestamp']/1000);
 		if(isset($val['channel']) && isset($val['type']) && isset($val['thingnotes'])){
 			//Get channel
 			$channel = $val['channel'];

@@ -33,6 +33,16 @@ include_file('desktop', 'qrcode', 'js', airsend::getPluginId());
     <p>
     <label>{{Veuillez scanner ce QRCode depuis Paramètres->Export->EasyScan dans l'application mobile :}}</label>
     <div id="qrcode" style="width:3000px;height:300px;padding:15px;background-color:#ffffff;"></div>
+    <table>
+    <tr>
+      <th style="width:100px;">Url</th>
+      <th><?php echo $REQUEST_PROTOCOL.'://'.$_SERVER["SERVER_ADDR"].':'.$_SERVER["SERVER_PORT"].'/';?></th>
+    </tr>
+    <tr>
+      <th style="width:100px;">Session</th>
+      <th><?php echo $_COOKIE['PHPSESSID'];?></th>
+    </tr>
+    </table>
     <br />
     <label>{{Vous devez être sur le même réseau local pour que l'application puisse se connecter à votre jeedom.}}</label>
     <br />

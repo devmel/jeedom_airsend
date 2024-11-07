@@ -9,13 +9,17 @@ sendVarToJS('eqType', $plugin->getId());
 $eqLogics = eqLogic::byType($plugin->getId());
 
 $others = array();
-$ips = array();
+$ifaces = array();
 foreach ($eqLogics as $eqLogic) {
     $deviceType = intval($eqLogic->getConfiguration('device_type'));
     if($deviceType == 0){
         $localip = $eqLogic->getConfiguration('localip');
         if (filter_var($localip, FILTER_VALIDATE_IP)) {
-            $ips[] = $localip;
+            $version = $eqLogic->getConfiguration('airsend_version');
+            $iface = array();
+            $iface["localip"] = $localip;
+            $iface["version"] = $version ? 2 : 1;
+            $ifaces[] = $iface;
         }
     }else{
         $eq = array();
@@ -24,7 +28,25 @@ foreach ($eqLogics as $eqLogic) {
         $others[] = $eq;
     }
 }
-$ips = array_unique($ips);
+$tempArray = array_unique(array_column($ifaces, "localip"));
+$ifaces = array_values(array_intersect_key($ifaces, $tempArray));
+
+$channels_all = array();
+$channels_v1 = array();
+foreach ($channels as $channel) {
+    $channels_all[$channel->name] = $channel->id;
+    if(property_exists($channel,"getBand")){
+        if($channel->getBand == 1){
+            $channels_v1[$channel->name] = $channel->id;
+        }
+    }else{
+        $channels_v1[$channel->name] = $channel->id;
+    }
+}
+echo "<script>";
+echo "var channels = ".json_encode($channels_all).";";
+echo "var channels_v1 = ".json_encode($channels_v1).";";
+echo "</script>";
 ?>
 
 <div class="row row-overflow">
@@ -155,7 +177,8 @@ foreach ($eqLogics as $eqLogic) {
                 <option value="4097">{{Télécommande On-Off}}</option>
                 <option value="4098">{{Télécommande Volet roulant}}</option>
                 <option value="4099">{{Télécommande Niveau}}</option>
-                <option value="1">Capteurs</option>
+                <option value="4100">{{Télécommande Orientation}}</option>
+                <option value="1">{{Capteurs}}</option>
             </select>
         </div>
         <div class="col-sm-1 asPassword">
@@ -166,11 +189,11 @@ foreach ($eqLogics as $eqLogic) {
         <label class="col-sm-3 control-label">{{AirSend LocalIP}}</label>
         <div class="col-sm-3">
             <input type="text" class="eqLogicAttr form-control" id="localipBase" data-l1key="configuration" data-l2key="localip" placeholder="localip" onChange="autoSelectValue(document.getElementById('localipSelect'),this.value);"/>
-            <select class="eqLogicAttr form-control" id="localipSelect" onChange="document.getElementById('localipBase').value = this.value;">
+            <select class="eqLogicAttr form-control" id="localipSelect" onChange="document.getElementById('localipBase').value = this.value;changeVersion(this.value);">
             <option value=""></option>
             <?php
-            foreach ($ips as $ip) {
-                echo '<option value="'.$ip.'" id="select_device_type">'.$ip.'</option>';
+            foreach ($ifaces as $iface) {
+                echo '<option value="'.$iface["localip"].'" id="select_device_type" data-version="'.$iface["version"].'">'.$iface["localip"].'</option>';
             }
             ?>
             </select>
