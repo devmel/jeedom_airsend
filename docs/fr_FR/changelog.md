@@ -1,3 +1,7 @@
+06/10/2025
+
+Ajout du type string pour les données hex
+
 07/11/2024
 
 Télécommande d'orientation pour BSO

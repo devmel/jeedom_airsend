@@ -501,8 +501,13 @@ class airsend extends eqLogic {
                             $type = 4098;
                         }
                     }else if($note['type'] == 1){   //DATA
-                        $type = 4096;
-                        $eqLogic->setConfiguration('opt', $value);
+                        if((is_int($value) && $value <= 0xffff)){
+                            $type = 4096;
+                            $eqLogic->setConfiguration('opt', $value);
+                        }else{
+                            $type = 1;
+                            $cmdLogicalId[] = "data";
+                        }
                     }else if($note['type'] == 2){   //TEMPERATURE
                         $type = 1;
                         $cmdLogicalId[] = "temperature";
@@ -694,9 +699,17 @@ class airsend extends eqLogic {
         if($res !== false && isset($res) && is_array($res) && isset($res['data'])){
             $channels = json_decode($res['data']);
             if(is_array($channels)){
-                $cur_channels = self::getChannelsInformation();
-                if(count($channels) > count($cur_channels)){
-                    $file = self::getChannelsInformationFile();
+                $refresh = true;
+                $file = self::getChannelsInformationFile();
+                if(file_exists($file)){
+                    $lastUpdate = filemtime($file);
+                    $curTime = time();
+                    $diff = $curTime - $lastUpdate;
+                    if($diff < (60 * 60 * 24)){
+                        $refresh = false;
+                    }
+                }
+                if($refresh){
                     if(file_put_contents($file, json_encode($channels)) == false){
                         $msg = __('Erreur decriture du fichier de gestion des canaux', __FILE__);
                         log::add(self::getPluginId(), 'error', $msg);
@@ -838,6 +851,9 @@ class airsend extends eqLogic {
                     if($ovalue == $opt){        //Check DATA
                         $slogicalid = 'state';
                         $toggle = true;
+                    }else{
+                        $slogicalid = 'data';
+                        $svalue = $ovalue;
                     }
                 }else if($note['type'] == 2){	//TEMPERATURE
                     $slogicalid = 'temperature';
@@ -1193,7 +1209,7 @@ class airsendCmd extends cmd {
 
     /*     * ***********************Methode static*************************** */
     public static function createFromLogicalId($logicalId, $eqLogicId){
-        $infofield = array('state', 'temperature', 'illuminance', 'r_humidity');
+        $infofield = array('state', 'data', 'temperature', 'illuminance', 'r_humidity');
         $actionfield = array('refresh', 'toggle', 'off', 'on', 'stop', 'down', 'up', 'slider', 'angle_minus', 'angle_plus');
         if(isset($eqLogicId) && isset($logicalId) && (in_array($logicalId, $infofield) || in_array($logicalId, $actionfield))){
             $cmd = new airsendCmd();
@@ -1258,6 +1274,9 @@ class airsendCmd extends cmd {
                 if($logicalId == "state"){
                     $cmd->setName(__('État', __FILE__));
                     $cmd->setDisplay('generic_type', 'GENERIC_INFO');
+                }else if($logicalId == "data"){
+                    $cmd->setName(__('Data', __FILE__));
+                    $cmd->setSubType('string');
                 }else if($logicalId == "temperature"){
 					$cmd->setTemplate('dashboard', 'tile');
                     $cmd->setName(__('Température', __FILE__));

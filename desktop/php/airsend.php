@@ -35,8 +35,8 @@ $channels_all = array();
 $channels_v1 = array();
 foreach ($channels as $channel) {
     $channels_all[$channel->name] = $channel->id;
-    if(property_exists($channel,"getBand")){
-        if($channel->getBand == 1){
+    if(property_exists($channel,"band")){
+        if($channel->band == 1){
             $channels_v1[$channel->name] = $channel->id;
         }
     }else{
